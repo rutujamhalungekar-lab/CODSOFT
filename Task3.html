@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Image Captioning AI</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f7f7f5;color:#1a1a1a;min-height:100vh}
+
+.page{max-width:900px;margin:0 auto;padding:2.5rem 1.25rem 4rem}
+header{margin-bottom:2.5rem}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#888;margin-bottom:.5rem}
+h1{font-size:28px;font-weight:600;line-height:1.25;color:#1a1a1a}
+h1 span{color:#534ab7}
+.tagline{font-size:15px;color:#666;margin-top:.4rem;line-height:1.6}
+
+.pipeline{display:flex;align-items:center;gap:0;margin:2rem 0;overflow-x:auto;padding-bottom:.5rem}
+.pipe-step{flex:1;min-width:100px;background:#fff;border:0.5px solid #e0e0e0;border-radius:10px;padding:12px 10px;text-align:center}
+.pipe-step .icon{font-size:22px;margin-bottom:6px}
+.pipe-step .label{font-size:11px;font-weight:600;color:#1a1a1a;margin-bottom:2px}
+.pipe-step .sub{font-size:10px;color:#888}
+.pipe-arrow{color:#ccc;font-size:18px;padding:0 6px;flex-shrink:0}
+.pipe-step.highlight{border-color:#7f77dd;background:#eeedfe}
+.pipe-step.highlight .label{color:#3c3489}
+.pipe-step.highlight .sub{color:#534ab7}
+
+.panels{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem}
+@media(max-width:580px){.panels{grid-template-columns:1fr}}
+
+.upload-zone{background:#fff;border:1.5px dashed #d0d0d0;border-radius:14px;padding:2rem 1.5rem;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;position:relative;min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.upload-zone:hover,.upload-zone.drag{border-color:#7f77dd;background:#faf9ff}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-zone .up-icon{font-size:32px;margin-bottom:.75rem;color:#bbb}
+.upload-zone .up-text{font-size:14px;color:#666}
+.upload-zone .up-hint{font-size:12px;color:#aaa;margin-top:.3rem}
+.preview-wrap{position:relative;border-radius:14px;overflow:hidden;background:#f0f0f0;min-height:220px;display:flex;align-items:center;justify-content:center}
+.preview-wrap img{width:100%;height:100%;object-fit:contain;max-height:340px;display:block;border-radius:14px}
+.preview-wrap .clear-btn{position:absolute;top:10px;right:10px;background:#fff;border:0.5px solid #e0e0e0;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;color:#666;transition:background .15s}
+.preview-wrap .clear-btn:hover{background:#f5f5f5}
+
+.caption-panel{background:#fff;border:0.5px solid #e5e5e5;border-radius:14px;padding:1.5rem;display:flex;flex-direction:column;gap:1rem}
+.caption-panel h2{font-size:14px;font-weight:600;color:#888;letter-spacing:.04em;text-transform:uppercase}
+.caption-output{min-height:80px;font-size:16px;line-height:1.7;color:#1a1a1a;flex:1}
+.caption-output.placeholder{color:#bbb;font-size:14px;font-style:italic}
+.tags-row{display:flex;flex-wrap:wrap;gap:6px}
+.tag{padding:4px 10px;border-radius:99px;font-size:12px;font-weight:500;background:#eeedfe;color:#3c3489;border:0.5px solid #afa9ec}
+.tag.obj{background:#e1f5ee;color:#085041;border-color:#5dcaa5}
+.tag.scene{background:#faeeda;color:#633806;border-color:#ef9f27}
+.tag.mood{background:#e6f1fb;color:#0c447c;border-color:#85b7eb}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.detail-item{background:#f7f7f5;border-radius:8px;padding:10px 12px}
+.detail-item .d-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#aaa;margin-bottom:3px}
+.detail-item .d-val{font-size:13px;color:#1a1a1a}
+
+.controls{display:flex;flex-direction:column;gap:12px;margin-bottom:1.5rem}
+.ctrl-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.api-input-wrap{flex:1;min-width:200px;position:relative}
+.api-input-wrap input{width:100%;padding:9px 36px 9px 12px;border:0.5px solid #ddd;border-radius:8px;font-size:13px;background:#fff;color:#1a1a1a;outline:none;transition:border-color .15s}
+.api-input-wrap input:focus{border-color:#7f77dd}
+.api-input-wrap .eye-btn{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#aaa;font-size:15px;padding:0}
+.mode-select select{padding:9px 12px;border:0.5px solid #ddd;border-radius:8px;font-size:13px;background:#fff;color:#1a1a1a;outline:none;cursor:pointer}
+.gen-btn{padding:10px 24px;background:#534ab7;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;transition:background .15s,opacity .15s;white-space:nowrap}
+.gen-btn:hover:not(:disabled){background:#3c3489}
+.gen-btn:disabled{opacity:.5;cursor:not-allowed}
+.url-row{display:flex;gap:8px}
+.url-row input{flex:1;padding:9px 12px;border:0.5px solid #ddd;border-radius:8px;font-size:13px;background:#fff;color:#1a1a1a;outline:none}
+.url-row input:focus{border-color:#7f77dd}
+.url-row button{padding:9px 16px;border:0.5px solid #ddd;border-radius:8px;font-size:13px;background:#fff;cursor:pointer;color:#1a1a1a;transition:background .15s;white-space:nowrap}
+.url-row button:hover{background:#f5f5f5}
+
+.status{font-size:13px;padding:10px 14px;border-radius:8px;margin-bottom:1rem}
+.status.loading{background:#eeedfe;color:#3c3489}
+.status.error{background:#fcebeb;color:#791f1f}
+.status.success{background:#e1f5ee;color:#085041}
+.status.hidden{display:none}
+
+.history-section{margin-top:2.5rem}
+.history-section h2{font-size:14px;font-weight:600;color:#888;letter-spacing:.04em;text-transform:uppercase;margin-bottom:1rem}
+.history-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem}
+.hist-card{background:#fff;border:0.5px solid #e5e5e5;border-radius:12px;overflow:hidden;cursor:pointer;transition:border-color .15s}
+.hist-card:hover{border-color:#7f77dd}
+.hist-card img{width:100%;height:120px;object-fit:cover;display:block}
+.hist-card .hist-caption{padding:10px 12px;font-size:12px;color:#555;line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.hist-card .hist-time{padding:0 12px 8px;font-size:11px;color:#bbb}
+
+.samples{margin-top:2.5rem}
+.samples h2{font-size:14px;font-weight:600;color:#888;letter-spacing:.04em;text-transform:uppercase;margin-bottom:1rem}
+.sample-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.75rem}
+.sample-item{border:0.5px solid #e5e5e5;border-radius:10px;overflow:hidden;cursor:pointer;background:#fff;transition:border-color .15s}
+.sample-item:hover{border-color:#7f77dd}
+.sample-item .s-thumb{width:100%;height:100px;object-fit:cover;display:block;background:#f0f0f0}
+.sample-item .s-label{padding:8px 10px;font-size:12px;color:#666}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid #7f77dd;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px;margin-right:6px}
+
+.copy-row{display:flex;justify-content:flex-end;gap:8px;margin-top:.5rem}
+.copy-btn{padding:5px 12px;border:0.5px solid #ddd;border-radius:6px;font-size:12px;background:#fff;cursor:pointer;color:#666;transition:background .15s}
+.copy-btn:hover{background:#f5f5f5}
+.arch-note{font-size:12px;color:#aaa;margin-top:.5rem;line-height:1.5}
+
+@media(max-width:480px){.ctrl-row{flex-direction:column;align-items:stretch}.gen-btn{width:100%}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="eyebrow">Computer vision + NLP</div>
+    <h1>Image <span>captioning</span> AI</h1>
+    <p class="tagline">Upload any image — a vision encoder extracts features, a language decoder generates captions.</p>
+  </header>
+
+  <!-- Architecture pipeline -->
+  <div class="pipeline" role="img" aria-label="Pipeline: image input to CNN encoder to feature vector to transformer decoder to caption output">
+    <div class="pipe-step">
+      <div class="icon">🖼️</div>
+      <div class="label">Image input</div>
+      <div class="sub">RGB tensor</div>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-step highlight">
+      <div class="icon">🧠</div>
+      <div class="label">CNN encoder</div>
+      <div class="sub">ResNet / ViT</div>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-step">
+      <div class="icon">📐</div>
+      <div class="label">Feature vector</div>
+      <div class="sub">2048-d embedding</div>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-step highlight">
+      <div class="icon">✨</div>
+      <div class="label">Transformer</div>
+      <div class="sub">Cross-attention</div>
+    </div>
+    <div class="pipe-arrow">→</div>
+    <div class="pipe-step">
+      <div class="icon">💬</div>
+      <div class="label">Caption</div>
+      <div class="sub">Natural language</div>
+    </div>
+  </div>
+<div style="margin-bottom:15px">
+  <input
+    type="password"
+    id="api-key"
+    placeholder="Enter Anthropic API Key (sk-ant-...)"
+    style="
+      width:100%;
+      padding:10px;
+      border:1px solid #ccc;
+      border-radius:8px;
+      font-size:14px;
+    "
+  />
+</div>
+  <!-- API key + mode controls -->
+  <div class="controls">
+    <div class="ctrl-row">
+      <div class="api-input-wrap">
+        <button class="eye-btn" onclick="toggleKey()" title="Show/hide key">👁</button>
+      </div>
+      <div class="mode-select">
+        <select id="caption-mode">
+          <option value="standard">Standard caption</option>
+          <option value="detailed">Detailed description</option>
+          <option value="alt">Alt-text (accessibility)</option>
+          <option value="poetic">Poetic / creative</option>
+          <option value="technical">Technical analysis</option>
+        </select>
+      </div>
+      <button class="gen-btn" id="gen-btn" onclick="generateCaption()" disabled>Generate caption</button>
+    </div>
+    <div class="url-row">
+      <input type="text" id="url-input" placeholder="Or paste an image URL…"/>
+      <button onclick="loadFromURL()">Load URL</button>
+    </div>
+  </div>
+
+  <div class="status hidden" id="status-bar"></div>
+
+  <!-- Main panels -->
+  <div class="panels">
+    <div>
+      <div id="upload-zone" class="upload-zone"
+           ondragover="onDrag(event,true)"
+           ondragleave="onDrag(event,false)"
+           ondrop="onDrop(event)">
+        <input type="file" id="file-input" accept="image/*" onchange="onFileChange(event)"/>
+        <div class="up-icon">📷</div>
+        <div class="up-text">Drop an image here</div>
+        <div class="up-hint">or click to browse · JPG, PNG, GIF, WebP</div>
+      </div>
+      <div id="preview-zone" style="display:none">
+        <div class="preview-wrap">
+          <img id="preview-img" src="" alt="Preview"/>
+          <button class="clear-btn" onclick="clearImage()" title="Remove image">✕</button>
+        </div>
+      </div>
+      <p class="arch-note" style="margin-top:.75rem">
+        Image → base64 → sent to Claude claude-sonnet-4-6 vision encoder → language head generates caption tokens autoregressively.
+      </p>
+    </div>
+
+    <div class="caption-panel">
+      <h2>Generated caption</h2>
+      <div class="caption-output placeholder" id="caption-text">
+        Caption will appear here after you upload an image and click "Generate caption".
+      </div>
+      <div class="copy-row" id="copy-row" style="display:none">
+        <button class="copy-btn" onclick="copyCaption()">Copy caption</button>
+      </div>
+      <div id="tags-area" style="display:none">
+        <div style="font-size:11px;font-weight:600;color:#aaa;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">
+          Detected elements
+        </div>
+        <div class="tags-row" id="tags-row"></div>
+      </div>
+      <div id="detail-area" style="display:none">
+        <div class="detail-grid" id="detail-grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sample images -->
+  <div class="samples">
+    <h2>Try a sample image</h2>
+    <div class="sample-grid" id="sample-grid"></div>
+  </div>
+
+  <!-- History -->
+  <div class="history-section" id="history-section" style="display:none">
+    <h2>Caption history</h2>
+    <div class="history-grid" id="history-grid"></div>
+  </div>
+
+</div>
+
+<script>
+// ── Sample images ────────────────────────────────────────────────────
+const SAMPLES = [
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png', label: 'Dice' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Cat03.jpg/320px-Cat03.jpg', label: 'Cat' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Golden_Gate_Bridge_2010.jpg/320px-Golden_Gate_Bridge_2010.jpg', label: 'Golden Gate Bridge' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Dog_Breeds.jpg/320px-Dog_Breeds.jpg', label: 'Dog' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Camponotus_flavomarginatus_ant.jpg/320px-Camponotus_flavomarginatus_ant.jpg', label: 'Ant macro' },
+  { url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Gatto_europeo4.jpg/320px-Gatto_europeo4.jpg', label: 'European cat' },
+];
+
+// ── Caption mode prompts ─────────────────────────────────────────────
+const MODES = {
+  standard: {
+    prompt: `You are an image captioning AI similar to BLIP-2 or GIT.
+Analyze this image and produce:
+1. A concise caption (1-2 sentences) describing the main subject and action.
+2. A JSON block on its own line:
+CAPTION_JSON:{"objects":["obj1","obj2"],"scene":"indoor/outdoor/etc","mood":"calm/energetic/etc","confidence":0.95,"camera":"close-up/wide/aerial/etc"}`,
+  },
+  detailed: {
+    prompt: `You are a detailed image description AI.
+Write a rich multi-sentence description covering subjects, setting, lighting, colors, and composition.
+Then output:
+CAPTION_JSON:{"objects":["obj1","obj2","obj3"],"scene":"description","mood":"description","confidence":0.9,"camera":"lens/angle"}`,
+  },
+  alt: {
+    prompt: `You are an accessibility alt-text generator.
+Write a concise alt-text under 125 characters for screen readers. Focus on the most important information.
+Then:
+CAPTION_JSON:{"objects":["key subjects"],"scene":"setting","mood":"neutral","confidence":0.95,"camera":"perspective"}`,
+  },
+  poetic: {
+    prompt: `You are a creative AI that writes poetic image captions.
+Write a lyrical, metaphorical 2-3 sentence caption.
+Then:
+CAPTION_JSON:{"objects":["thematic elements"],"scene":"evocative description","mood":"emotional tone","confidence":0.85,"camera":"poetic framing"}`,
+  },
+  technical: {
+    prompt: `You are a computer vision technical analysis AI.
+Describe: detected objects with estimated positions, depth/perspective cues, dominant colors (hex), lighting conditions, and composition analysis.
+Then:
+CAPTION_JSON:{"objects":["obj with position"],"scene":"scene type","mood":"neutral","confidence":0.9,"camera":"focal length estimate, angle"}`,
+  },
+};
+
+// ── State ────────────────────────────────────────────────────────────
+let currentImageB64 = null;
+let currentImageURL = null;
+let history = [];
+
+// ── Build sample grid ────────────────────────────────────────────────
+function buildSamples() {
+  const g = document.getElementById('sample-grid');
+  SAMPLES.forEach(s => {
+    const d = document.createElement('div');
+    d.className = 'sample-item';
+    d.innerHTML = `<img class="s-thumb" src="${s.url}" alt="${s.label}" loading="lazy" onerror="this.style.display='none'"/>
+                   <div class="s-label">${s.label}</div>`;
+    d.onclick = () => loadSample(s.url);
+    g.appendChild(d);
+  });
+}
+
+// ── Load sample / URL ────────────────────────────────────────────────
+function loadSample(url) {
+  setStatus('loading', 'Loading image…');
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    c.getContext('2d').drawImage(img, 0, 0);
+    try {
+      const b64 = c.toDataURL('image/jpeg', 0.85).split(',')[1];
+      currentImageB64 = b64; currentImageURL = url;
+      showPreview(url);
+      setStatus('success', 'Image loaded. Click "Generate caption".');
+    } catch (e) {
+      // CORS blocked — fall back to URL source
+      currentImageB64 = null; currentImageURL = url;
+      showPreview(url);
+      setStatus('success', 'Image loaded (URL mode). Click "Generate caption".');
+    }
+    updateGenBtn();
+  };
+  img.onerror = () => setStatus('error', 'Could not load image. Try a different URL.');
+  img.src = url;
+}
+
+function loadFromURL() {
+  const url = document.getElementById('url-input').value.trim();
+  if (!url) { setStatus('error', 'Please enter an image URL.'); return; }
+  loadSample(url);
+}
+
+// ── File input / drag-drop ───────────────────────────────────────────
+function onDrag(e, enter) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.toggle('drag', enter);
+}
+function onDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f) readFile(f);
+}
+function onFileChange(e) {
+  const f = e.target.files[0];
+  if (f) readFile(f);
+}
+function readFile(file) {
+  if (!file.type.startsWith('image/')) { setStatus('error', 'Please upload an image file.'); return; }
+  const r = new FileReader();
+  r.onload = ev => {
+    const b64 = ev.target.result.split(',')[1];
+    currentImageB64 = b64; currentImageURL = null;
+    showPreview(ev.target.result);
+    setStatus('success', 'Image loaded. Click "Generate caption".');
+    updateGenBtn();
+  };
+  r.readAsDataURL(file);
+}
+
+// ── UI helpers ───────────────────────────────────────────────────────
+function toggleKey() {
+  const i = document.getElementById('api-key');
+  i.type = i.type === 'password' ? 'text' : 'password';
+}
+
+function showPreview(src) {
+  document.getElementById('upload-zone').style.display = 'none';
+  document.getElementById('preview-zone').style.display = 'block';
+  document.getElementById('preview-img').src = src;
+}
+
+function clearImage() {
+  currentImageB64 = null; currentImageURL = null;
+  document.getElementById('upload-zone').style.display = 'flex';
+  document.getElementById('preview-zone').style.display = 'none';
+  document.getElementById('file-input').value = '';
+  document.getElementById('url-input').value = '';
+  resetOutput(); updateGenBtn();
+  setStatus('hidden', '');
+}
+
+function updateGenBtn() {
+  document.getElementById('gen-btn').disabled = !(currentImageB64 || currentImageURL);
+}
+
+function setStatus(type, msg) {
+  const el = document.getElementById('status-bar');
+  el.className = 'status ' + (type === 'hidden' ? 'hidden' : type);
+  el.innerHTML = type === 'loading' ? `<span class="spinner"></span>${msg}` : msg;
+}
+
+function resetOutput() {
+  const ct = document.getElementById('caption-text');
+  ct.textContent = 'Caption will appear here after you upload an image and click "Generate caption".';
+  ct.className = 'caption-output placeholder';
+  document.getElementById('copy-row').style.display = 'none';
+  document.getElementById('tags-area').style.display = 'none';
+  document.getElementById('detail-area').style.display = 'none';
+}
+
+function copyCaption() {
+  navigator.clipboard.writeText(document.getElementById('caption-text').textContent).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy caption', 1500);
+  });
+}
+
+// ── API call ─────────────────────────────────────────────────────────
+async function generateCaption() {
+  alert("Button clicked");
+  const mode = document.getElementById('caption-mode').value;
+  
+const key = document.getElementById('api-key').value.trim();
+if(!key){
+  setStatus('error','Please enter your Anthropic API key.');
+  return;
+}
+  document.getElementById('gen-btn').disabled = true;
+  setStatus('loading', 'Sending image to Claude vision encoder…');
+  resetOutput();
+
+  try {
+    // Build image content block
+     imageBlock = currentImageB64
+    
+
+imageBlock = {
+  type: 'image',
+  source: {
+    type: 'base64',
+    media_type: 'image/jpeg',
+    data: currentImageB64
+  }
+};
+  
+const response = await fetch(
+  'http://localhost:3000/caption',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      image: currentImageB64,
+      prompt: MODES[mode].prompt
+    })
+  }
+);
+
+if (!response.ok) {
+  const error = await response.text();
+  throw new Error(error);
+}
+
+const data = await response.json();
+
+const raw = data.content
+  .map(item => item.text || '')
+  .join('');
+
+parseAndDisplay(raw, mode);
+    setStatus('success', 'Caption generated successfully!');
+    addHistory(currentImageB64 || currentImageURL, raw, mode);
+
+  }catch(e){
+  console.error(e);
+  setStatus('error','Error: '+e.message);
+}finally {
+    document.getElementById('gen-btn').disabled = false;
+    updateGenBtn();
+  }
+}
+
+// ── Parse response + render ──────────────────────────────────────────
+function parseAndDisplay(raw, mode) {
+  let caption = raw, meta = null;
+  const idx = raw.indexOf('CAPTION_JSON:');
+  if (idx !== -1) {
+    caption = raw.slice(0, idx).trim();
+    try { meta = JSON.parse(raw.slice(idx + 13).trim()); } catch (e) {}
+  }
+
+  // Caption text
+  const ct = document.getElementById('caption-text');
+  ct.textContent = caption || raw;
+  ct.className = 'caption-output';
+  document.getElementById('copy-row').style.display = 'flex';
+
+  if (meta) {
+    // Object / scene / mood tags
+    const tr = document.getElementById('tags-row');
+    tr.innerHTML = '';
+    (meta.objects || []).slice(0, 8).forEach(o => {
+      const t = document.createElement('span');
+      t.className = 'tag obj'; t.textContent = o; tr.appendChild(t);
+    });
+    if (meta.scene) {
+      const t = document.createElement('span'); t.className = 'tag scene'; t.textContent = meta.scene; tr.appendChild(t);
+    }
+    if (meta.mood) {
+      const t = document.createElement('span'); t.className = 'tag mood'; t.textContent = meta.mood; tr.appendChild(t);
+    }
+    document.getElementById('tags-area').style.display = 'block';
+
+    // Detail cards
+    const dg = document.getElementById('detail-grid');
+    dg.innerHTML = '';
+    [
+      { label: 'Confidence', val: meta.confidence != null ? Math.round(meta.confidence * 100) + '%' : '—' },
+      { label: 'Camera / angle', val: meta.camera || '—' },
+      { label: 'Scene type', val: meta.scene || '—' },
+      { label: 'Caption mode', val: mode.charAt(0).toUpperCase() + mode.slice(1) },
+    ].forEach(d => {
+      const el = document.createElement('div'); el.className = 'detail-item';
+      el.innerHTML = `<div class="d-label">${d.label}</div><div class="d-val">${d.val}</div>`;
+      dg.appendChild(el);
+    });
+    document.getElementById('detail-area').style.display = 'block';
+  }
+}
+
+// ── History ──────────────────────────────────────────────────────────
+function addHistory(imgSrc, raw, mode) {
+  const caption = raw.includes('CAPTION_JSON:')
+    ? raw.slice(0, raw.indexOf('CAPTION_JSON:')).trim() : raw;
+  history.unshift({ src: imgSrc, caption, mode, time: new Date().toLocaleTimeString() });
+  if (history.length > 12) history.pop();
+  renderHistory();
+}
+
+function renderHistory() {
+  const sec = document.getElementById('history-section');
+  const grid = document.getElementById('history-grid');
+  grid.innerHTML = '';
+  if (!history.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  history.forEach((h, i) => {
+    const card = document.createElement('div'); card.className = 'hist-card';
+    card.innerHTML = `<img src="${h.src}" alt="History ${i + 1}" style="width:100%;height:120px;object-fit:cover;display:block"/>
+      <div class="hist-caption">${h.caption}</div>
+      <div class="hist-time">${h.mode} · ${h.time}</div>`;
+    card.onclick = () => {
+      document.getElementById('caption-text').textContent = h.caption;
+      document.getElementById('caption-text').className = 'caption-output';
+      document.getElementById('copy-row').style.display = 'flex';
+    };
+    grid.appendChild(card);
+  });
+}
+
+// ── Init ─────────────────────────────────────────────────────────────
+buildSamples();
+</script>
+</body>
+</html>
