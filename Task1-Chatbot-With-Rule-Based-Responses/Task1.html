@@ -1,1 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CODSOFT Rule-Based Chatbot</title>
 
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Segoe UI,sans-serif;
+}
+
+body{
+    background:#f4f4f9;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.chat-container{
+    width:420px;
+    height:650px;
+    background:#fff;
+    border-radius:20px;
+    box-shadow:0 8px 25px rgba(0,0,0,0.15);
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+}
+
+.header{
+    background:#534AB7;
+    color:white;
+    padding:18px;
+    text-align:center;
+}
+
+.header h2{
+    font-size:20px;
+}
+
+.header p{
+    font-size:12px;
+    opacity:0.9;
+}
+
+.chat-box{
+    flex:1;
+    padding:15px;
+    overflow-y:auto;
+    background:#fafafa;
+}
+
+.message{
+    margin:10px 0;
+    max-width:80%;
+    padding:12px;
+    border-radius:15px;
+    line-height:1.5;
+}
+
+.bot{
+    background:white;
+    border:1px solid #ddd;
+}
+
+.user{
+    background:#534AB7;
+    color:white;
+    margin-left:auto;
+}
+
+.input-area{
+    display:flex;
+    padding:12px;
+    border-top:1px solid #ddd;
+    background:white;
+}
+
+input{
+    flex:1;
+    padding:12px;
+    border:1px solid #ccc;
+    border-radius:25px;
+    outline:none;
+}
+
+button{
+    margin-left:10px;
+    border:none;
+    background:#534AB7;
+    color:white;
+    width:50px;
+    border-radius:50%;
+    cursor:pointer;
+    font-size:18px;
+}
+
+button:hover{
+    background:#40388f;
+}
+
+.footer{
+    text-align:center;
+    padding:8px;
+    font-size:11px;
+    color:#666;
+}
+</style>
+</head>
+
+<body>
+
+<div class="chat-container">
+
+    <div class="header">
+        <h2>CodSoft Assistant:Rutuja</h2>
+        <p>Rule-Based Chatbot</p>
+    </div>
+
+    <div class="chat-box" id="chatBox">
+    </div>
+
+    <div class="input-area">
+        <input
+            type="text"
+            id="userInput"
+            placeholder="Type your message..."
+        >
+        <button onclick="sendMessage()">➤</button>
+    </div>
+
+    <div class="footer">
+        CODSOFT AI Internship Project | Rule-Based Chatbot using If-Else Statements
+    </div>
+
+</div>
+
+<script>
+
+const chatBox = document.getElementById("chatBox");
+
+function addMessage(message, sender){
+
+    const div = document.createElement("div");
+
+    div.classList.add("message");
+    div.classList.add(sender);
+
+    div.innerHTML = message;
+
+    chatBox.appendChild(div);
+
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function getResponse(input){
+
+    let text = input.toLowerCase().trim();
+
+    if(text === "hi" || text === "hello" || text === "hey"){
+        return "Hello 👋 I am CodSoft Assistant. How can I help you today?";
+    }
+
+    else if(text === "how are you"){
+        return "I am doing great! Thanks for asking 😊";
+    }
+
+    else if(text === "what is ai"){
+        return "Artificial Intelligence (AI) enables machines to simulate human intelligence and perform tasks such as learning and decision making.";
+    }
+
+    else if(text === "what is machine learning"){
+        return "Machine Learning is a branch of AI that allows computers to learn from data without being explicitly programmed.";
+    }
+
+    else if(text === "what is python"){
+        return "Python is a popular programming language used in AI, web development, and data science.";
+    }
+
+    else if(text === "what is chatbot"){
+        return "A chatbot is a software application designed to simulate conversation with users.";
+    }
+
+    else if(text === "what can you do"){
+        return "I can answer predefined questions using rule-based responses and if-else statements.";
+    }
+
+    else if(text === "who created you"){
+        return "I was created as part of a CODSOFT Artificial Intelligence Internship project.";
+    }
+
+    else if(text === "what is codsoft"){
+        return "CodSoft provides internship opportunities that help students develop practical technical skills.";
+    }
+
+    else if(text === "thank you" || text === "thanks"){
+        return "You're welcome! 😊";
+    }
+
+    else if(text === "bye"){
+        return "Goodbye! Have a wonderful day! 👋";
+    }
+
+    else if(text === "how does this chatbot work"){
+        return "I use predefined rules and an if-else ladder to identify user queries and provide appropriate responses.";
+    }
+
+    else{
+        return "Sorry, I don't understand that question. Please try another query.";
+    }
+}
+
+function sendMessage(){
+
+    let input = document.getElementById("userInput");
+    let text = input.value.trim();
+
+    if(text === "") return;
+
+    addMessage(text,"user");
+
+    input.value = "";
+
+    setTimeout(() => {
+
+        let response = getResponse(text);
+        addMessage(response,"bot");
+
+    },600);
+}
+
+document.getElementById("userInput")
+.addEventListener("keypress",function(e){
+
+    if(e.key === "Enter"){
+        sendMessage();
+    }
+
+});
+
+window.onload = function(){
+
+    addMessage(
+        "Hello 👋 I am <b>CodSoft Assistant</b>. This is a Rule-Based Chatbot built using HTML, CSS and JavaScript. I use predefined rules and if-else statements to answer user queries.",
+        "bot"
+    );
+
+};
+
+</script>
+
+</body>
+</html>
